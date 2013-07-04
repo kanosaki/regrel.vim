@@ -29,16 +29,39 @@ syn match   regrelRule              "->"
   " syn match   regrelRelations     "==\|~\|!~\|<=\|?/\|?\|#_\|!\|/:"
 
 
-syn match   regrelGraph             "\([^()<>{}:]\+\s*\)\%((\)\@=" nextgroup=regrelGraphRegion skipwhite skipnl
+syn match   regrelGraph             "\(\<[^()<>{}:]\+\s*\)\%((\)\@=" nextgroup=regrelGraphRegion skipwhite skipnl
 
 syn region  regrelGraphRegion       start=/(/ end=/)/ contains=regrelArc,regrelGraph,regrelGraphRegion,regrelFn,regrelFnRegion
 syn match   regrelArc               "\i\+\s*\%(:\)\@=" containedin=regrelGraphRegion,regrelFnArgRegion
 
-syn match   regrelFn                "\([^()<>{}:]\+\s*\)\%(<\)\@=" nextgroup=regrelGraphRegion skipwhite skipnl
+syn match   regrelFn                "\(\<[^()<>{}:]\+\s*\)\%(<\)\@=" nextgroup=regrelGraphRegion skipwhite skipnl
 syn region  regrelFnArgRegion       start=/</ end=/>/ contains=regrelArc,regrelGraph,regrelGraphRegion,regrelFn,regrelFnRegion
 
-" Define default highlighting
+" ---------------------------------
+"  Support for inline Python code
+" ---------------------------------
+let s:pythonpath= fnameescape(expand("<sfile>:p:h")."/python.vim")
+if !filereadable(s:pythonpath)
+  for s:pythonpath in split(globpath(&rtp,"syntax/python.vim"),"\n")
+    if filereadable(fnameescape(s:pythonpath))
+      let s:pythonpath= fnameescape(s:pythonpath)
+      break
+    endif
+  endfor
+endif
+if filereadable(s:pythonpath)
+  unlet! b:current_syntax
+  exe "syn include @regrelInlinePythonBody ".s:pythonpath
+  syn region regrelInlinePython matchgroup=regrelPreprocessor fold start=+^@def.*\$$+ end=+^\$;+	contains=@regrelInlinePythonBody
+else
+  syn region regrelIgnored matchgroup=regrelPreprocessor start=+^@def.*\$$+ end=+^\$;+	
+endif
+unlet s:pythonpath
 
+
+" ---------------------------------
+" Define default highlighting
+" ---------------------------------
 if version >= 508 || !exists("did_regrel_inits")
   if version < 508
     let did_regrel_inits = 1
@@ -55,9 +78,10 @@ if version >= 508 || !exists("did_regrel_inits")
   HiLink regrelFn             Function
   HiLink regrelArc            Type
 
+  HiLink regrelIgnored        Comment
+
   delcommand HiLink
 endif
-
 
 " ---------------------------------
 "  Syntax Finalization
